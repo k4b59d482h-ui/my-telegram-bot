@@ -40,7 +40,7 @@ async def send_daily_poll():
 
 async def main():
     # Робимо запуск щодня рівно о 12:00
-    scheduler.add_job(send_daily_poll, "cron", hour=12, minute=45)
+    scheduler.add_job(send_daily_poll, "cron", hour=12, minute=55)
     scheduler.start()
     
     logging.info("Бот запущенний. Опитування надходитиме щодня о 12:00 за часом сервера.")
