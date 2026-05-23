@@ -13,9 +13,9 @@ BOT_TOKEN = "7963453350:AAG8lJAgSKULro8mb-Fm7QWu3wBJYWW9D6U"
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Координати Києва для погоди
-LATITUDE = 50.4501
-LONGITUDE = 30.5234
+# КООРДИНАТИ СЕЛА ЗОЛОТОНОШКА
+LATITUDE = 49.8825
+LONGITUDE = 32.2274
 
 # Функція отримання погоди через API
 async def get_weather():
@@ -67,53 +67,51 @@ async def send_poll_to_chat(chat_id):
         logging.error(f"Помилка відправки опитування: {e}")
         return False
 
-# Реєстрація команд у меню Телеграма
+# Реєстрація двох окремих команд у меню Телеграма
 async def set_main_menu(bot: Bot):
     main_menu_commands = [
         BotCommand(command="/poll", description="Створити опитування для прогулянки"),
-        BotCommand(command="/pogoda", description="Яка погода сьогодні")
+        BotCommand(command="/pogoda", description="Яка погода в Золотоношці")
     ]
     await bot.set_my_commands(main_menu_commands)
 
-# Реагуємо на команду /poll або /go
+# КАНАЛ 1: Суто опитування
 @dp.message(Command("poll", "go"))
 async def handle_poll_command(message: types.Message):
-    poll_sent = await send_poll_to_chat(message.chat.id)
-    if poll_sent:
-        try:
-            await message.delete()
-        except Exception as e:
-            logging.error(f"Не вдалося видалити команду: {e}")
-
-# Реагуємо на команду /pogoda або /hto
-@dp.message(Command("pogoda", "hto"))
-async def handle_weather_command(message: types.Message):
-    # Видаляємо команду від користувача для чистоти
     try:
         await message.delete()
     except Exception as e:
-        logging.error(f"Не вдалося видалити повідомлення: {e}")
+        logging.error(f"Не вдалося видалити команду: {e}")
+        
+    await send_poll_to_chat(message.chat.id)
 
-    # Отримуємо погоду
+# КАНАЛ 2: Суто погода в селі
+@dp.message(Command("pogoda", "hto"))
+async def handle_weather_command(message: types.Message):
+    try:
+        await message.delete()
+    except Exception as e:
+        logging.error(f"Не вдалося видалити команду: {e}")
+
     weather_data = await get_weather()
     
     if weather_data:
         temp, wind, emoji = weather_data
         text = (
-            f"🌳 *ПРОГНОЗ ПОГОДИ ДЛЯ ПРОГУЛЯНКИ* 🌳\n\n"
-            f"Зараз на вулиці: {emoji}\n"
+            f"🌳 *ПОГОДА В ЗОЛОТОНОШЦІ* 🌳\n\n"
+            f"Зараз у селі: {emoji}\n"
             f"🌡 Температура: *{temp}°C*\n"
             f"💨 Вітер: *{wind} км/год*\n\n"
-            f"Думайте, збирайтеся і тикайте `/poll` для зборів! 😉"
+            f"Ідеальний привід вийти провітритись! 😉"
         )
     else:
-        text = "❌ Не вдалося підтягнути погоду, визирніть у вікно! 😅"
+        text = "❌ Не вдалося зв'язатися з метеостанцією. Глянь у вікно! 😅"
         
     await message.answer(text, parse_mode="Markdown")
 
 async def main():
     await set_main_menu(bot)
-    logging.info("Бот запущений і чекає на команди...")
+    logging.info("Бот запущений. Команди розведені окремо!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
