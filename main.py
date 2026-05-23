@@ -6,7 +6,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 # Налаштування логів
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = "7294244249:AAEy5wK6_vXpPlpB4_n8eO6-uV7O8f7O8f0"
+# Новий токен твого бота
+BOT_TOKEN = "7963453350:AAG8lJAgSKULro8mb-Fm7QWu3wBJYWW9D6U"
 CHAT_ID = -1001780467253
 
 bot = Bot(token=BOT_TOKEN)
@@ -29,13 +30,13 @@ async def send_daily_poll():
 async def main():
     scheduler = AsyncIOScheduler()
     
-    # ТЕСТОВИЙ ЧАС: 13:20 за сервером = 16:20 за Києвом
-    scheduler.add_job(send_daily_poll, "cron", hour=13, minute=20)
+    # ТЕСТОВИЙ ЧАС: 13:25 за сервером = 16:25 за Києвом
+    scheduler.add_job(send_daily_poll, "cron", hour=13, minute=25)
     
     scheduler.start()
     logging.info("Планувальник успішно запущено!")
     
-    # Запуск бота в режимі постійного опитування сервера
+    # Запуск бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
