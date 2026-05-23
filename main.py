@@ -2,8 +2,6 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from aiogram.types import BufferedInputFile
-from aiohttp import web
 
 # Налаштування логів
 logging.basicConfig(level=logging.INFO)
@@ -28,28 +26,16 @@ async def send_daily_poll():
     except Exception as e:
         logging.error(f"Помилка відправки опитування: {e}")
 
-# Створюємо пустий веб-сервер, щоб Render був задоволений
-async def handle(request):
-    return web.Response(text="Бот працює!")
-
 async def main():
     scheduler = AsyncIOScheduler()
     
-    # ТЕСТОВИЙ ЧАС: 13:05 за сервером = 16:05 за Києвом
-    scheduler.add_job(send_daily_poll, "cron", hour=13, minute=15)
+    # ТЕСТОВИЙ ЧАС: 13:20 за сервером = 16:20 за Києвом
+    scheduler.add_job(send_daily_poll, "cron", hour=13, minute=20)
     
     scheduler.start()
-    logging.info("Планувальник запущено.")
+    logging.info("Планувальник успішно запущено!")
     
-    # Запуск веб-сервера
-    app = web.Application()
-    app.router.add_get('/', handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 10000)
-    await site.start()
-    
-    # Запуск бота
+    # Запуск бота в режимі постійного опитування сервера
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
