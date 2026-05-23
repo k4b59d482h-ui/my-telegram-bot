@@ -36,7 +36,7 @@ async def main():
     scheduler = AsyncIOScheduler()
     
     # ТЕСТОВИЙ ЧАС: 13:05 за сервером = 16:05 за Києвом
-    scheduler.add_job(send_daily_poll, "cron", hour=13, minute=5)
+    scheduler.add_job(send_daily_poll, "cron", hour=13, minute=15)
     
     scheduler.start()
     logging.info("Планувальник запущено.")
