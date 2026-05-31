@@ -15,10 +15,10 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
 
-# Змінна для запам'ятовування групи
 target_chat_id = None
 
 async def get_weather_text():
+    # Запит до API погоди
     url = "https://api.open-meteo.com/v1/forecast?latitude=49.8825&longitude=32.2274&current_weather=true"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
@@ -29,7 +29,6 @@ async def get_weather_text():
             emoji = "☀️" if code == 0 else "🌧" if code > 50 else "🌤"
             return f"📍 Золотоношка\n{emoji}\n🌡 {temp}°C"
 
-# Завдання для розкладу
 async def daily_weather():
     global target_chat_id
     if target_chat_id:
@@ -39,13 +38,25 @@ async def daily_weather():
 @dp.message(Command("pogoda"))
 async def handle_weather(message: types.Message):
     global target_chat_id
-    # Запам'ятовуємо ID групи, де викликали команду
     target_chat_id = message.chat.id
+    
+    # Видаляємо повідомлення користувача (команду /pogoda)
+    try:
+        await message.delete()
+    except:
+        pass # Якщо бот не має прав адміна, він просто пропустить це
+        
     text = await get_weather_text()
     await message.answer(f"📍 Погода за запитом:\n{text}")
 
 @dp.message(Command("poll"))
 async def handle_poll(message: types.Message):
+    # Видаляємо команду /poll
+    try:
+        await message.delete()
+    except:
+        pass
+        
     options = ["16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "Не йду"]
     await bot.send_poll(chat_id=message.chat.id, question="Гулять", options=options, is_anonymous=False)
 
@@ -53,7 +64,6 @@ async def handle(request):
     return web.Response(text="Бот активний")
 
 async def main():
-    # Запуск веб-сервера
     app = web.Application()
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
@@ -61,7 +71,6 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', PORT)
     await site.start()
 
-    # Планувальник (надсилати щодня о 09:00)
     scheduler.add_job(daily_weather, 'cron', hour=9, minute=0)
     scheduler.start()
 
