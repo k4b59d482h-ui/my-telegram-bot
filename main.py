@@ -7,6 +7,7 @@ from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
 
+# --- НАЛАШТУВАННЯ ---
 logging.basicConfig(level=logging.INFO)
 BOT_TOKEN = "7963453350:AAG8lJAgSKULro8mb-Fm7QWu3wBJYWW9D6U"
 PORT = int(os.environ.get("PORT", 8080))
@@ -18,52 +19,51 @@ scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
 target_chat_id = None
 
 async def get_weather_text():
-    # Запит до API погоди
-    url = "https://api.open-meteo.com/v1/forecast?latitude=49.8825&longitude=32.2274&current_weather=true"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            data = await response.json()
-            curr = data.get("current_weather", {})
-            temp = round(curr.get("temperature", 0))
-            code = curr.get("weathercode", 0)
-            emoji = "☀️" if code == 0 else "🌧" if code > 50 else "🌤"
-            return f"📍 Золотоношка\n{emoji}\n🌡 {temp}°C"
+    # Актуальний API запит
+    url = "https://api.open-meteo.com/v1/forecast?latitude=49.8825&longitude=32.2274&current=temperature_2m,weather_code"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                data = await response.json()
+                curr = data.get("current", {})
+                temp = round(curr.get("temperature_2m", 0))
+                code = curr.get("weather_code", 0)
+                
+                # Словник для точного опису погоди
+                weather_map = {0: "☀️ Ясно", 1: "🌤 Мінлива хмарність", 2: "⛅️ Хмарно", 3: "☁️ Похмуро"}
+                emoji = weather_map.get(code, "🌧 Опади/інше")
+                return f"📍 Золотоношка\n{emoji}\n🌡 Температура: {temp}°C"
+    except Exception as e:
+        logging.error(f"Помилка API: {e}")
+        return "⚠️ Не вдалося отримати актуальні дані про погоду."
 
-async def daily_weather():
-    global target_chat_id
+# --- РОЗКЛАД ---
+async def scheduled_weather():
     if target_chat_id:
         text = await get_weather_text()
-        await bot.send_message(chat_id=target_chat_id, text=f"☀️ Доброго ранку!\n{text}")
+        await bot.send_message(chat_id=target_chat_id, text=f"🕐 **Час гуляти!**\n\n{text}")
 
+# --- КОМАНДИ ---
 @dp.message(Command("pogoda"))
-async def handle_weather(message: types.Message):
+async def cmd_pogoda(message: types.Message):
     global target_chat_id
-    target_chat_id = message.chat.id
-    
-    # Видаляємо повідомлення користувача (команду /pogoda)
-    try:
-        await message.delete()
-    except:
-        pass # Якщо бот не має прав адміна, він просто пропустить це
-        
+    target_chat_id = message.chat.id # Бот "запам'ятовує" групу
+    await message.delete() # Видаляємо команду
     text = await get_weather_text()
-    await message.answer(f"📍 Погода за запитом:\n{text}")
+    await message.answer(text)
 
 @dp.message(Command("poll"))
-async def handle_poll(message: types.Message):
-    # Видаляємо команду /poll
-    try:
-        await message.delete()
-    except:
-        pass
-        
+async def cmd_poll(message: types.Message):
+    await message.delete() # Видаляємо команду
     options = ["16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "Не йду"]
-    await bot.send_poll(chat_id=message.chat.id, question="Гулять", options=options, is_anonymous=False)
+    await bot.send_poll(chat_id=message.chat.id, question="Гуляємо?", options=options, is_anonymous=False)
 
+# Веб-заглушка для Render
 async def handle(request):
-    return web.Response(text="Бот активний")
+    return web.Response(text="Бот працює 24/7")
 
 async def main():
+    # Запуск сервера
     app = web.Application()
     app.router.add_get('/', handle)
     runner = web.AppRunner(app)
@@ -71,7 +71,8 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', PORT)
     await site.start()
 
-    scheduler.add_job(daily_weather, 'cron', hour=9, minute=0)
+    # Планувальник (щодня о 13:00)
+    scheduler.add_job(scheduled_weather, 'cron', hour=13, minute=0)
     scheduler.start()
 
     await dp.start_polling(bot, drop_pending_updates=True)
